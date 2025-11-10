@@ -1,5 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom';
-import Sidebar from './Sidebar';
+import Sidebar from './SideBar';
 import { Plus } from 'lucide-react';
 import { motion } from 'framer-motion'; 
 import { useRef } from 'react'; // Mantenha o useRef
@@ -67,4 +67,5 @@ export default function Layout() {
       </main>
     </div>
   );
+
 }
