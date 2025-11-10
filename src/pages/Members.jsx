@@ -51,7 +51,7 @@ export default function Members() {
   };
 
   /* ========================================
-     ✉️ Criar convite (CORRIGIDO: Chama Edge Function)
+     ✉️ Criar convite (CORRIGIDO: Gera Link e Alerta)
      ======================================== */
   const handleCreateInvite = async () => {
     if (!newEmail) return alert("Digite um e-mail para convite.");
@@ -72,12 +72,17 @@ export default function Members() {
 
         if (error || !data.success) {
             console.error(error || data.details);
-            alert(`Erro ao enviar convite: ${data?.message || error?.message}`);
+            alert(`Erro ao gerar convite: ${data?.message || error?.message}`);
             return;
         }
+        
+        // 🚨 NOVO FLUXO: Captura o link retornado pela Edge Function
+        const link = data.inviteUrl; 
 
         setNewEmail("");
-        alert(`Convite enviado com sucesso para ${emailToInvite}!`);
+        // Exibe o link em um alerta para o usuário copiar/compartilhar
+        alert(`Convite gerado! Copie e envie o link para ${emailToInvite}:\n\n${link}`);
+        
         await loadInvitations(); // Recarrega a lista para mostrar o novo convite
         
     } catch (e) {
@@ -95,7 +100,7 @@ export default function Members() {
     if (!confirm("Deseja realmente revogar este convite?")) return;
     await supabase
       .from("invitations")
-      // ✅ Atualiza o status para 'expired' (revogado)
+      // Atualiza o status para 'expired', que o componente trata como revogado
       .update({ status: "expired" }) 
       .eq("id", id);
     await loadInvitations();
