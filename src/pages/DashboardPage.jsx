@@ -89,7 +89,7 @@ export default function DashboardPage() {
       
       {/* Container Principal (O "Vidro") */}
       <div 
-        className="w-full max-full
+        className="w-full max-h-md
                    bg-white/50 backdrop-blur-lg 
                    border border-white/20 
                    rounded-3xl shadow-xl p-6"
@@ -222,4 +222,5 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+
 }
