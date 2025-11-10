@@ -89,7 +89,7 @@ export default function DashboardPage() {
       
       {/* Container Principal (O "Vidro") */}
       <div 
-        className="w-full max-h-md
+        className="w-full max-w-md 
                    bg-white/50 backdrop-blur-lg 
                    border border-white/20 
                    rounded-3xl shadow-xl p-6"
@@ -208,7 +208,7 @@ export default function DashboardPage() {
               <Lightbulb className="w-6 h-6 mb-2 text-indigo-600" />
               <p className="text-sm text-slate-700">
                 (Insight sobre otimização de gastos virá aqui)
-              </p>
+              </D>
             </div>
             <div className="p-4 bg-white rounded-xl shadow-md">
               <TrendingUp className="w-6 h-6 mb-2 text-indigo-600" />
@@ -222,5 +222,4 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-
 }
