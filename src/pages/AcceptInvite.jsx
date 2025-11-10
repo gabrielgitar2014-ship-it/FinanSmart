@@ -5,59 +5,78 @@ import { supabase } from "../lib/supabaseClient";
 import { Auth } from '@supabase/auth-ui-react'; 
 import { ThemeSupa } from '@supabase/auth-ui-shared'; 
 
+// Importante: O CSS do Auth UI deve estar no index.html ou no main.jsx
+// para evitar o erro de importação.
+
 export default function AcceptInvite() {
   const { token } = useParams();
-  const { user } = useAuth(); // Status de autenticação
+  const { user } = useAuth(); // Monitora o estado de login
   const navigate = useNavigate();
   
+  // O estado padrão é "loading"
   const [status, setStatus] = useState("loading");
   const [inviteDetails, setInviteDetails] = useState(null); 
+  const [errorDetails, setErrorDetails] = useState(null); // Para exibir mensagens de erro detalhadas
 
   /* ========================================
      ➡️ FUNÇÃO PRINCIPAL: Processar Convite
+     (Só executa quando user muda ou na montagem inicial)
      ======================================== */
   useEffect(() => {
+    // 1. Condição de Saída Rápida: Sem token ou usuário
     if (!token) {
         setStatus("invalid");
         return;
     }
+    
+    // Se não houver usuário, interrompe e força a renderização do Auth UI.
+    if (!user) {
+        setStatus("login_required");
+        return;
+    }
 
-    const processInvite = async () => {
+    // Se o usuário está logado, inicia o processo de aceitação:
+    const acceptInviteProcess = async () => {
       
-      // 1. VALIDAÇÃO DO CONVITE (GET /invite/:token)
-      // Verifica se o token é válido, expirado, ou já usado.
-      const { data, error: funcError } = await supabase.functions.invoke(`invite/${token}`, {
+      // 2. VALIDAÇÃO DO CONVITE (GET /invite/:token)
+      // Usando a API Fetch nativa, que é mais robusta que o invoke() para GET com token na URL.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token || ''; 
+      const endpoint = `${supabase.supabaseUrl}/functions/v1/invite/${token}`;
+
+      const response = await fetch(endpoint, {
           method: 'GET',
+          headers: {
+              'Authorization': `Bearer ${accessToken}`, 
+              'Content-Type': 'application/json',
+          },
       });
-      
-      if (funcError || !data.success || !data.valid) {
+
+      const data = await response.json();
+      const funcError = !response.ok; 
+
+      if (funcError || !data.success || !data.invite) {
+          setErrorDetails(data?.message || "Erro desconhecido na validação.");
           setStatus("invalid"); 
           return;
       }
       
-      setInviteDetails(data.invite); 
+      const invite = data.invite;
+      setInviteDetails(invite); 
 
-      // 2. SE NÃO ESTIVER LOGADO, PARE AQUI. A renderização cuidará do Auth UI.
-      if (!user) {
-        setStatus("login_required");
-        return;
-      }
-      
-      // 3. CONTINUAÇÃO (Executado SOMENTE se o usuário estiver logado)
-      
-      // 3a. VERIFICAÇÃO DE E-MAIL
+      // 3. VERIFICAÇÃO DE E-MAIL (Se for logado com Google/Magic Link)
       const { data: profile } = await supabase
         .from("profiles")
         .select("email")
         .eq("id", user.id)
         .single();
         
-      if (profile.email.toLowerCase() !== data.invite.email.toLowerCase()) {
+      if (profile.email.toLowerCase() !== invite.email.toLowerCase()) {
         setStatus("email_mismatch");
         return;
       }
       
-      // 3b. ACEITAÇÃO DO CONVITE (POST /invite/:token)
+      // 4. ACEITAÇÃO FINAL (POST /invite/:token)
       const { error: acceptError } = await supabase.functions.invoke(`invite/${token}`, {
           method: 'POST',
           body: { 
@@ -67,6 +86,7 @@ export default function AcceptInvite() {
       });
 
       if (acceptError) {
+          setErrorDetails("O convite já foi aceito ou você já é membro.");
           setStatus("used"); 
           return;
       }
@@ -74,12 +94,9 @@ export default function AcceptInvite() {
       setStatus("success");
       setTimeout(() => navigate("/dashboard" || "/"), 2000); 
     };
-    
-    // A função só executa se não estivermos no estado de 'login_required'
-    if (status !== 'login_required') {
-        processInvite();
-    }
-  }, [user, token, navigate, status]); // Adicionamos 'status' como dependência
+
+    acceptInviteProcess();
+  }, [user, token, navigate]); 
 
   /* ========================================
      ➡️ MENSAGENS E RENDERIZAÇÃO
@@ -88,8 +105,8 @@ export default function AcceptInvite() {
     loading: "Verificando convite...",
     success: "Convite aceito com sucesso! 🎉 Redirecionando...",
     expired: "Este convite expirou.",
-    invalid: "Convite inválido ou inexistente.",
-    used: "Convite já utilizado.", 
+    invalid: errorDetails || "Convite inválido ou inexistente.", // Exibe detalhes do erro da Edge Function
+    used: errorDetails || "Convite já utilizado ou você já faz parte da família.", 
     login_required: "Faça login ou crie sua conta para aceitar o convite.",
     email_mismatch: `Este convite foi enviado para o e-mail: ${inviteDetails ? inviteDetails.email : 'outro e-mail'}. Por favor, faça login com a conta correta.`,
   };
@@ -120,7 +137,9 @@ export default function AcceptInvite() {
               <Auth
                   supabaseClient={supabase}
                   appearance={{ theme: ThemeSupa }}
-                  view={'sign_in'} 
+                  
+                  // Inicia no modo Cadastro, mas permite alternar para Login.
+                  view={'sign_up'} 
                   providers={['google']} 
                   showBackButton={false} 
               />
