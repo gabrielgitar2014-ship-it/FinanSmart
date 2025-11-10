@@ -208,7 +208,7 @@ export default function DashboardPage() {
               <Lightbulb className="w-6 h-6 mb-2 text-indigo-600" />
               <p className="text-sm text-slate-700">
                 (Insight sobre otimização de gastos virá aqui)
-              </D>
+              </p>
             </div>
             <div className="p-4 bg-white rounded-xl shadow-md">
               <TrendingUp className="w-6 h-6 mb-2 text-indigo-600" />
@@ -223,3 +223,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
